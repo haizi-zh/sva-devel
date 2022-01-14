@@ -146,9 +146,9 @@ int.eprior <- function(sdat, g.hat, d.hat){
 } 
 
 ## Monte Carlo integration functions (fast implementation)
-int.eprior_fast <- function(sdat, g.hat, d.hat, bpparam) {
+int.eprior_fast <- function(sdat, g.hat, d.hat) {
   g.hat_sq <- g.hat ^ 2
-  adjust <- bplapply(1:nrow(sdat), function(i) {
+  adjust <- lapply(1:nrow(sdat), function(i) {
     x <- sdat[i, !is.na(sdat[i, ])]
     n <- length(x)
     x_sq <- x ^ 2
@@ -161,7 +161,7 @@ int.eprior_fast <- function(sdat, g.hat, d.hat, bpparam) {
     
     c(sum(g.hat[-i] * LH[-i]) / sum(LH[-i]),
       sum(d.hat[-i] * LH[-i]) / sum(LH[-i]))
-  }, BPPARAM = bpparam)
+  })
   
   adjust <- matrix(unlist(adjust), nrow = 2)
   rownames(adjust) <- c("g.star", "d.star")
