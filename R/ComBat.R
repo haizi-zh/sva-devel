@@ -44,7 +44,9 @@
 #'
 
 ComBat <- function(dat, batch, mod = NULL, par.prior = TRUE, prior.plots = FALSE,
-                   mean.only = FALSE, ref.batch = NULL, BPPARAM = bpparam("SerialParam")) {
+                   mean.only = FALSE, ref.batch = NULL, BPPARAM = bpparam("SerialParam"), 
+                   prior_mode = c("standard", "fast")) {
+  prior_mode <- match.arg(prior_mode)
     if(length(dim(batch))>1){
       stop("This version of ComBat only allows one batch variable")
     }  ## to be updated soon!  
@@ -260,14 +262,19 @@ ComBat <- function(dat, batch, mod = NULL, par.prior = TRUE, prior.plots = FALSE
     }
     else {
         message("Finding nonparametric adjustments")
-        results <- bplapply(1:n.batch, function(i) {
-            if (mean.only) {
-                delta.hat[i, ] = 1
-            }
-            temp <- int.eprior(as.matrix(s.data[, batches[[i]]]),
-                               gamma.hat[i, ], delta.hat[i, ])
-            list(gamma.star=temp[1,], delta.star=temp[2,])
-        }, BPPARAM = BPPARAM)
+      results <- bplapply(1:n.batch, function(i) {
+        if (mean.only) {
+          delta.hat[i,] = 1
+        }
+        if (prior_mode == "standard")
+          func_eprior <- int.eprior
+        else
+          func_eprior <- int.eprior_fast
+        temp <- func_eprior(as.matrix(s.data[, batches[[i]]]),
+                           gamma.hat[i, ],
+                           delta.hat[i, ])
+        list(gamma.star = temp[1,], delta.star = temp[2,])
+      }, BPPARAM = BPPARAM)
         for (i in 1:n.batch) {
             gamma.star[i,] <- results[[i]]$gamma.star
             delta.star[i,] <- results[[i]]$delta.star

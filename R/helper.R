@@ -145,6 +145,29 @@ int.eprior <- function(sdat, g.hat, d.hat){
     adjust	
 } 
 
+## Monte Carlo integration functions (fast implementation)
+int.eprior_fast <- function(sdat, g.hat, d.hat, bpparam) {
+  g.hat_sq <- g.hat ^ 2
+  adjust <- bplapply(1:nrow(sdat), function(i) {
+    x <- sdat[i, !is.na(sdat[i, ])]
+    n <- length(x)
+    x_sq <- x ^ 2
+    k <- length(x)
+    
+    sum2 <-
+      as.numeric((sum(x_sq) + k * g.hat_sq - 2 * sum(x) * g.hat))
+    LH <- 1 / (2 * pi * d.hat) ^ (n / 2) * exp(-sum2 / (2 * d.hat))
+    LH[is.nan(LH)] <- 0
+    
+    c(sum(g.hat[-i] * LH[-i]) / sum(LH[-i]),
+      sum(d.hat[-i] * LH[-i]) / sum(LH[-i]))
+  }, BPPARAM = bpparam)
+  
+  adjust <- matrix(unlist(adjust), nrow = 2)
+  rownames(adjust) <- c("g.star", "d.star")
+  adjust
+}
+
 ## fits the L/S model in the presence of missing data values
 
 Beta.NA <- function(y,X){
